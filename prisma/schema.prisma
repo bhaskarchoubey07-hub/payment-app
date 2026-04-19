@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String        @id @default(uuid())
+  email            String        @unique
+  name             String?
+  phone            String?       @unique
+  kycStatus        KycStatus     @default(PENDING)
+  aiHealthScore    Int           @default(70)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  
+  accounts         Account[]
+  transactions     Transaction[]
+  loans            Loan[]
+  insights         Insight[]
+}
+
+model Account {
+  id               String        @id @default(uuid())
+  userId           String
+  type             AccountType
+  provider         String        // e.g. "HDFC", "Binance", "NexusCredit"
+  balance          Float         @default(0)
+  currency         String        @default("INR")
+  address          String?       // UPI ID or Wallet Address
+  
+  user             User          @relation(fields: [userId], references: [id])
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model Transaction {
+  id               String        @id @default(uuid())
+  userId           String
+  amount           Float
+  currency         String
+  type             TransactionType // CREDIT | DEBIT
+  method           PaymentMethod   // UPI | CRYPTO | CARD | WALLET
+  category         String?         // Food, Housing, Investment, etc.
+  status           TransactionStatus @default(SUCCESS)
+  merchantName     String?
+  routingLogic     Json?           // Logic used by AI to route this tx
+  
+  user             User            @relation(fields: [userId], references: [id])
+  createdAt        DateTime        @default(now())
+}
+
+model Loan {
+  id               String        @id @default(uuid())
+  userId           String
+  amount           Float
+  interestRate     Float
+  durationMonths   Int
+  status           LoanStatus    @default(PENDING)
+  aiCreditScore    Int           // The score at time of application
+  
+  user             User          @relation(fields: [userId], references: [id])
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model Insight {
+  id               String        @id @default(uuid())
+  userId           String
+  title            String
+  message          String
+  severity         InsightSeverity @default(INFO)
+  isRead           Boolean         @default(false)
+  
+  user             User            @relation(fields: [userId], references: [id])
+  createdAt        DateTime        @default(now())
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum AccountType {
+  BANK
+  CRYPTO
+  CREDIT_LINE
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum PaymentMethod {
+  UPI
+  CRYPTO
+  CARD
+  WALLET
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum LoanStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ACTIVE
+  REPAID
+}
+
+enum InsightSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
