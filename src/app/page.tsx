@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/ui/Header';
 import GlassCard from '@/components/ui/GlassCard';
 import PremiumButton from '@/components/ui/PremiumButton';
+import { getDashboardData, signOut } from '@/app/actions/dashboard';
+import { processPayment } from '@/app/actions/transactions';
 import { 
   ArrowUpRight, 
   ArrowDownLeft, 
@@ -14,12 +16,59 @@ import {
   ChevronRight,
   Wallet,
   CreditCard,
-  Globe
+  Globe,
+  Loader2,
+  LogOut
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Home() {
-  const [balance, setBalance] = useState(124500.85);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    async function loadData() {
+      const dbData = await getDashboardData();
+      if (!dbData) {
+        window.location.href = '/auth';
+        return;
+      }
+      setData(dbData);
+      setLoading(false);
+    }
+    loadData();
+  }, []);
+
+  const handleTestPayment = async () => {
+    setProcessing(true);
+    try {
+       await processPayment({
+         amount: 1200,
+         currency: 'INR',
+         merchantName: 'Aether Cloud Services',
+         method: 'UPI'
+       });
+       // Refresh data
+       const updated = await getDashboardData();
+       setData(updated);
+    } catch (e: any) {
+       alert(e.message);
+    } finally {
+       setProcessing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex-center" style={{ height: '100vh' }}>
+        <Loader2 className="animate-spin" size={32} />
+      </div>
+    );
+  }
+
+  const primaryAccount = data.accounts[0];
+  const balance = primaryAccount?.balance || 0;
 
   return (
     <div className="home-wrapper">
@@ -30,7 +79,10 @@ export default function Home() {
         <section className="hero-balance">
           <GlassCard className="balance-card">
             <div className="balance-info">
-              <p className="label">Total Balance</p>
+              <div className="balance-head">
+                <p className="label">Total Balance</p>
+                <button onClick={signOut} className="signout-icon"><LogOut size={16} /></button>
+              </div>
               <h2 className="amount">₹{balance.toLocaleString()}</h2>
               <div className="growth-tag">
                 <TrendingUp size={14} />
@@ -48,9 +100,11 @@ export default function Home() {
         {/* Quick Actions Container */}
         <section className="quick-actions">
           <div className="actions-grid">
-            <div className="action-item">
-              <div className="action-circle primary"><ArrowUpRight /></div>
-              <span>Send</span>
+            <div className="action-item" onClick={handleTestPayment}>
+              <div className="action-circle primary">
+                {processing ? <Loader2 className="animate-spin" /> : <ArrowUpRight />}
+              </div>
+              <span>{processing ? '...' : 'Send ₹1.2k'}</span>
             </div>
             <div className="action-item">
               <div className="action-circle secondary"><ArrowDownLeft /></div>
@@ -75,41 +129,12 @@ export default function Home() {
             </div>
             <div className="banner-content">
               <h3>Aether AI Insight</h3>
-              <p>You're spending 15% more on Dining than last month. Consider shifting ₹5,000 to your <b>Crypto Index</b> to maintain your goals.</p>
+              <p>You recently spent ₹1,200 on <b>Aether Cloud Services</b>. Your spending in 'Transport' is trending 5% lower than average.</p>
             </div>
             <button className="banner-action">
               <ChevronRight />
             </button>
           </GlassCard>
-        </section>
-
-        {/* Smart Payment Routing Hub */}
-        <section className="routing-hub">
-          <div className="section-header">
-            <h3>Nexus Path Routing</h3>
-            <span className="badge-live">Live</span>
-          </div>
-          
-          <div className="routing-options">
-            <div className="route-card active">
-              <div className="route-info">
-                <p className="route-name">UPI Payment</p>
-                <p className="route-meta">Best for: Daily Expenses</p>
-              </div>
-              <div className="route-reward">
-                <span>1% Cash</span>
-              </div>
-            </div>
-            <div className="route-card">
-              <div className="route-info">
-                <p className="route-name">Crypto Rail</p>
-                <p className="route-meta">Best for: Int'l Transfers</p>
-              </div>
-              <div className="route-reward">
-                <span>5% Yield</span>
-              </div>
-            </div>
-          </div>
         </section>
 
         {/* Recent Transactions Section */}
@@ -120,17 +145,15 @@ export default function Home() {
           </div>
           
           <div className="tx-list">
-            {[
-              { id: 1, name: 'Apple Store', category: 'Shopping', amount: -69900, icon: <div className="tx-icon dark"><ShieldAlert size={18} /></div> },
-              { id: 2, name: 'S. Rawat', category: 'UPI Transfer', amount: 4500, icon: <div className="tx-icon primary"><ArrowDownLeft size={18} /></div> },
-              { id: 3, name: 'Binance', category: 'Crypto Yield', amount: 1250, icon: <div className="tx-icon accent"><Globe size={18} /></div> },
-            ].map((tx) => (
+            {(data.transactions || []).map((tx: any) => (
               <div key={tx.id} className="tx-row">
                 <div className="tx-left">
-                  {tx.icon}
+                  <div className={`tx-icon ${tx.amount > 0 ? 'accent' : 'primary'}`}>
+                    {tx.amount > 0 ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
+                  </div>
                   <div className="tx-details">
-                    <p className="tx-name">{tx.name}</p>
-                    <p className="tx-category">{tx.category}</p>
+                    <p className="tx-name">{tx.merchantName}</p>
+                    <p className="tx-category">{tx.category || tx.method}</p>
                   </div>
                 </div>
                 <div className={`tx-right ${tx.amount > 0 ? 'positive' : 'negative'}`}>
@@ -138,8 +161,13 @@ export default function Home() {
                 </div>
               </div>
             ))}
+            {data.transactions.length === 0 && (
+                <p className="empty-msg">No recent activity found.</p>
+            )}
           </div>
         </section>
+      </main>
+
       </main>
 
       <style jsx>{`

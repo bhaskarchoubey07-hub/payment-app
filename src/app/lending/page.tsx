@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/ui/Header';
 import GlassCard from '@/components/ui/GlassCard';
 import PremiumButton from '@/components/ui/PremiumButton';
+import { getLiveCreditScore, applyForLoan } from '@/app/actions/lending';
 import { 
   ShieldCheck, 
   Coins, 
@@ -11,12 +12,52 @@ import {
   BarChart3, 
   Info,
   Calendar,
-  Lock
+  Lock,
+  Loader2,
+  CheckCircle2
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LendingPage() {
-  const [creditScore, setCreditScore] = useState(742);
+  const [scoreData, setScoreData] = useState<any>(null);
   const [loanAmount, setLoanAmount] = useState(25000);
+  const [loading, setLoading] = useState(true);
+  const [applying, setApplying] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    async function loadScore() {
+      const data = await getLiveCreditScore();
+      if (!data) {
+          window.location.href = '/auth';
+          return;
+      }
+      setScoreData(data);
+      setLoading(false);
+    }
+    loadScore();
+  }, []);
+
+  const handleApply = async () => {
+    setApplying(true);
+    try {
+      await applyForLoan(loanAmount, scoreData.rate, scoreData.score);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 5000);
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex-center" style={{ height: '100vh' }}>
+        <Loader2 className="animate-spin" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="lending-wrapper">
@@ -36,19 +77,21 @@ export default function LendingPage() {
                 <div className="gauge-outer">
                    <div className="gauge-inner flex-center">
                       <div className="score-value">
-                        <span className="number">{creditScore}</span>
-                        <span className="label">Excellent</span>
+                        <span className="number">{scoreData.score}</span>
+                        <span className="label">
+                            {scoreData.score > 800 ? 'Exceptional' : scoreData.score > 700 ? 'Excellent' : 'Good'}
+                        </span>
                       </div>
                    </div>
                 </div>
               </div>
               <div className="score-details">
                 <h3>Your Credit Health</h3>
-                <p>Calculated by Aether AI based on 142 data points in your FinOS profile.</p>
+                <p>Calculated by Aether AI based on your transaction depth and consistency.</p>
                 <div className="score-factors">
                   <div className="factor">
                     <span className="dot success"></span>
-                    <span>Saving Rate (24%)</span>
+                    <span>Saving Behavior (Active)</span>
                   </div>
                   <div className="factor">
                     <span className="dot success"></span>
@@ -76,7 +119,7 @@ export default function LendingPage() {
               <input 
                 type="range" 
                 min="5000" 
-                max="100000" 
+                max={Math.max(5000, scoreData.eligibility)} 
                 step="5000" 
                 value={loanAmount}
                 onChange={(e) => setLoanAmount(parseInt(e.target.value))}
@@ -86,7 +129,7 @@ export default function LendingPage() {
               <div className="calc-details">
                 <div className="detail-item">
                   <p className="d-label">Int. Rate</p>
-                  <p className="d-value">10.5% p.a</p>
+                  <p className="d-value">{scoreData.rate}% p.a</p>
                 </div>
                 <div className="detail-item">
                   <p className="d-label">Duration</p>
@@ -99,11 +142,15 @@ export default function LendingPage() {
               </div>
             </div>
 
-            <PremiumButton className="apply-btn">
-              Apply Instantly <ArrowRight size={18} />
+            <PremiumButton className="apply-btn" onClick={handleApply} disabled={applying || success}>
+              {applying ? <Loader2 className="animate-spin" /> : success ? <CheckCircle2 /> : 'Apply Instantly'}
+              {!applying && !success && <ArrowRight size={18} />}
             </PremiumButton>
+            
+            {success && <p className="success-txt">Application submitted for review!</p>}
           </GlassCard>
         </section>
+
 
         {/* Benefits Section */}
         <section className="benefits-section">
