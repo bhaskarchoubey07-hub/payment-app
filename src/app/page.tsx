@@ -168,8 +168,6 @@ export default function Home() {
         </section>
       </main>
 
-      </main>
-
       <style jsx>{`
         .home-wrapper {
           padding-bottom: 2rem;
