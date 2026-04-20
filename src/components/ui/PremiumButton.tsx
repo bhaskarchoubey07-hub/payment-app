@@ -9,6 +9,7 @@ interface PremiumButtonProps {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   className?: string;
   disabled?: boolean;
+  type?: 'button' | 'submit' | 'reset';
 }
 
 export default function PremiumButton({ 
@@ -16,7 +17,8 @@ export default function PremiumButton({
   onClick, 
   variant = 'primary', 
   className = '',
-  disabled = false
+  disabled = false,
+  type = 'button'
 }: PremiumButtonProps) {
   
   const variants = {
@@ -43,6 +45,7 @@ export default function PremiumButton({
 
   return (
     <motion.button
+      type={type}
       whileHover={!disabled ? { scale: 1.02, translateY: -2 } : {}}
       whileTap={!disabled ? { scale: 0.98 } : {}}
       onClick={onClick}
