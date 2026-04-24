@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import Header from '@/components/ui/Header';
 import GlassCard from '@/components/ui/GlassCard';
 import PremiumButton from '@/components/ui/PremiumButton';
@@ -12,13 +12,17 @@ import {
   Lock,
   ChevronRight,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { processPayment } from '@/app/actions/transactions';
 
 export default function ScanPage() {
   const [scanning, setScanning] = useState(true);
   const [detected, setDetected] = useState<null | 'UPI' | 'CRYPTO'>(null);
+  const [amount, setAmount] = useState<string>('');
+  const [isPending, startTransition] = useTransition();
 
   // Simulate scanning logic
   useEffect(() => {
@@ -30,6 +34,25 @@ export default function ScanPage() {
       return () => clearTimeout(timer);
     }
   }, [scanning]);
+
+  const handlePay = () => {
+    if (!amount || parseFloat(amount) <= 0) return;
+
+    startTransition(async () => {
+      try {
+        await processPayment({
+          amount: parseFloat(amount),
+          currency: 'INR',
+          method: detected || 'UPI',
+          merchantName: 'Starbucks Coffee #422'
+        });
+        alert('Payment Successful!');
+        window.location.href = '/';
+      } catch (error: any) {
+        alert(error.message);
+      }
+    });
+  };
 
   return (
     <div className="scan-wrapper">
@@ -92,11 +115,21 @@ export default function ScanPage() {
 
                 <div className="amount-input">
                   <span>₹</span>
-                  <input type="number" placeholder="0.00" autoFocus />
+                  <input 
+                    type="number" 
+                    placeholder="0.00" 
+                    autoFocus 
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
                 </div>
 
-                <PremiumButton className="pay-btn" onClick={() => alert('Processing via Nexus Path...')}>
-                  Confirm Payment
+                <PremiumButton 
+                  className="pay-btn" 
+                  onClick={handlePay}
+                  disabled={isPending}
+                >
+                  {isPending ? <Loader2 className="animate-spin" size={20} /> : 'Confirm Payment'}
                 </PremiumButton>
                 
                 <button className="change-route" onClick={() => setScanning(true)}>

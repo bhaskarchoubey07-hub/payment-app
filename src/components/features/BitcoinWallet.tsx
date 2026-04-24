@@ -1,16 +1,16 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import GlassCard from '@/components/ui/GlassCard';
-import { Bitcoin, ArrowRightLeft, TrendingUp, TrendingDown, RefreshCcw } from 'lucide-react';
+import { Bitcoin, ArrowRightLeft, TrendingUp, TrendingDown, RefreshCcw, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { tradeBitcoin } from '@/app/actions/bitcoin';
 
-export default function BitcoinWallet({ btcBalance = 0.0045 }: { btcBalance?: number }) {
+export default function BitcoinWallet({ btcBalance = 0.0045, onTradeSuccess }: { btcBalance?: number, onTradeSuccess?: () => void }) {
   const [price, setPrice] = useState<number | null>(null);
   const [change, setChange] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [btcAmount, setBtcAmount] = useState<string>('1');
+  const [btcAmount, setBtcAmount] = useState<string>('0.001');
   const [inrAmount, setInrAmount] = useState<string>('');
+  const [isPending, startTransition] = useTransition();
 
   const fetchPrice = async () => {
     setLoading(true);
@@ -52,6 +52,20 @@ export default function BitcoinWallet({ btcBalance = 0.0045 }: { btcBalance?: nu
       return;
     }
     setBtcAmount((parseFloat(val) / price).toFixed(8));
+  };
+
+  const handleTrade = (type: 'BUY' | 'SELL') => {
+    if (!price || !btcAmount) return;
+    
+    startTransition(async () => {
+      try {
+        await tradeBitcoin(parseFloat(btcAmount), price, type);
+        alert(`${type} successful!`);
+        if (onTradeSuccess) onTradeSuccess();
+      } catch (error: any) {
+        alert(error.message);
+      }
+    });
   };
 
   return (
@@ -115,8 +129,20 @@ export default function BitcoinWallet({ btcBalance = 0.0045 }: { btcBalance?: nu
       </div>
 
       <div className="wallet-actions">
-        <button className="action-btn buy">Buy Bitcoin</button>
-        <button className="action-btn sell">Sell</button>
+        <button 
+          className="action-btn buy flex-center" 
+          onClick={() => handleTrade('BUY')}
+          disabled={isPending || loading}
+        >
+          {isPending ? <Loader2 className="animate-spin" size={18} /> : 'Buy Bitcoin'}
+        </button>
+        <button 
+          className="action-btn sell flex-center" 
+          onClick={() => handleTrade('SELL')}
+          disabled={isPending || loading}
+        >
+          {isPending ? <Loader2 className="animate-spin" size={18} /> : 'Sell'}
+        </button>
       </div>
 
       <style jsx>{`

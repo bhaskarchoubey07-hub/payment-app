@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import { 
   Activity, 
   Users, 
@@ -10,11 +10,58 @@ import {
   Search,
   Filter,
   MoreVertical,
-  Briefcase
+  Briefcase,
+  CheckCircle2,
+  XCircle,
+  Loader2
 } from 'lucide-react';
 import GlassCard from '@/components/ui/GlassCard';
+import { getAdminStats, getPendingLoans, updateLoanStatus } from '@/app/actions/admin';
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState<any>(null);
+  const [loans, setLoans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
+
+  const loadData = async () => {
+    try {
+      const [statsData, loansData] = await Promise.all([
+        getAdminStats(),
+        getPendingLoans()
+      ]);
+      setStats(statsData);
+      setLoans(loansData);
+    } catch (error) {
+      console.error('Admin Load Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleStatusUpdate = (id: string, status: 'APPROVED' | 'REJECTED') => {
+    startTransition(async () => {
+      try {
+        await updateLoanStatus(id, status);
+        await loadData();
+      } catch (error) {
+        alert('Action failed');
+      }
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex-center" style={{ height: '100vh', background: '#050505', color: 'white' }}>
+        <Loader2 className="animate-spin" size={32} color="var(--primary)" />
+      </div>
+    );
+  }
+
   return (
     <div className="admin-wrapper">
       <aside className="admin-sidebar glass">
@@ -52,17 +99,17 @@ export default function AdminDashboard() {
         <section className="stats-grid">
           <GlassCard className="stat-card">
             <p className="label">Total Ecosystem Volume</p>
-            <h3>₹14.2 Cr</h3>
+            <h3>₹{(stats?.totalVolume / 10000000).toFixed(2)} Cr</h3>
             <span className="trend positive">+12.4% vs last mo.</span>
           </GlassCard>
           <GlassCard className="stat-card">
             <p className="label">Active Loan Book</p>
-            <h3>₹2.8 Cr</h3>
+            <h3>₹{(stats?.activeLoans / 100000).toFixed(2)} L</h3>
             <span className="trend positive">+5.2% vs last mo.</span>
           </GlassCard>
           <GlassCard className="stat-card">
             <p className="label">Fraud Risk Score</p>
-            <h3>0.04%</h3>
+            <h3>{stats?.fraudScore}%</h3>
             <span className="trend negative">Stable</span>
           </GlassCard>
         </section>
@@ -84,22 +131,46 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { name: 'Aditya V.', amount: '₹45,000', score: 812, risk: 'Low' },
-                  { name: 'Meera K.', amount: '₹12,000', score: 645, risk: 'Medium' },
-                  { name: 'Rohan S.', amount: '₹85,000', score: 889, risk: 'Low' },
-                ].map((row, i) => (
-                  <tr key={i}>
+                {loans.map((loan) => (
+                  <tr key={loan.id}>
                     <td className="user-cell">
                       <div className="avatar-small"></div>
-                      {row.name}
+                      {loan.user.name || loan.user.email}
                     </td>
-                    <td>{row.amount}</td>
-                    <td>{row.score}</td>
-                    <td><span className={`risk-badge ${row.risk.toLowerCase()}`}>{row.risk}</span></td>
-                    <td><button className="icon-btn"><MoreVertical size={16} /></button></td>
+                    <td>₹{loan.amount.toLocaleString()}</td>
+                    <td>{loan.aiCreditScore}</td>
+                    <td>
+                      <span className={`risk-badge ${loan.aiCreditScore > 750 ? 'low' : 'medium'}`}>
+                        {loan.aiCreditScore > 750 ? 'Low' : 'Medium'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-btns">
+                        <button 
+                          className="status-btn approve" 
+                          onClick={() => handleStatusUpdate(loan.id, 'APPROVED')}
+                          disabled={isPending}
+                        >
+                          <CheckCircle2 size={18} />
+                        </button>
+                        <button 
+                          className="status-btn reject" 
+                          onClick={() => handleStatusUpdate(loan.id, 'REJECTED')}
+                          disabled={isPending}
+                        >
+                          <XCircle size={18} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
+                {loans.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                      No pending loan applications found.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </GlassCard>
@@ -286,6 +357,27 @@ export default function AdminDashboard() {
 
         .risk-badge.low { background: hsla(142, 70%, 45%, 0.15); color: var(--success); }
         .risk-badge.medium { background: hsla(38, 92%, 50%, 0.15); color: var(--warning); }
+
+        .action-btns {
+          display: flex;
+          gap: 8px;
+        }
+
+        .status-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: 0.2s;
+        }
+
+        .status-btn.approve { background: hsla(142, 70%, 45%, 0.1); color: var(--success); }
+        .status-btn.approve:hover { background: var(--success); color: white; }
+        
+        .status-btn.reject { background: hsla(0, 70%, 45%, 0.1); color: var(--error); }
+        .status-btn.reject:hover { background: var(--error); color: white; }
 
         .text-btn { color: var(--primary); font-weight: 600; }
       `}</style>

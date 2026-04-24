@@ -33,6 +33,20 @@ const services = [
 ];
 
 export default function ServiceGrid() {
+  const handleServiceClick = (id: string) => {
+    switch (id) {
+      case 'loan':
+        window.location.href = '/lending';
+        break;
+      case 'insights':
+      case 'more':
+        window.location.href = '/insights';
+        break;
+      default:
+        alert(`${id} service is currently being integrated with local partners.`);
+    }
+  };
+
   return (
     <div className="service-grid">
       {services.map((service, index) => (
@@ -43,6 +57,7 @@ export default function ServiceGrid() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: index * 0.05 }}
+          onClick={() => handleServiceClick(service.id)}
         >
           <div className="service-icon-wrapper" style={{ backgroundColor: `${service.color}15`, color: service.color }}>
             {service.icon}

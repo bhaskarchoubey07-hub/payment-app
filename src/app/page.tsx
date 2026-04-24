@@ -30,16 +30,18 @@ export default function Home() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadData() {
-      const dbData = await getDashboardData();
-      if (!dbData) {
-        window.location.href = '/auth';
-        return;
-      }
-      setData(dbData);
-      setLoading(false);
+  const loadData = async () => {
+    setLoading(true);
+    const dbData = await getDashboardData();
+    if (!dbData) {
+      window.location.href = '/auth';
+      return;
     }
+    setData(dbData);
+    setLoading(false);
+  };
+
+  useEffect(() => {
     loadData();
   }, []);
 
@@ -60,14 +62,14 @@ export default function Home() {
       {/* Search Header */}
       <header className="page-header">
         <div className="header-left">
-          <div className="profile-btn"><User size={20} /></div>
+          <div className="profile-btn" onClick={() => signOut()} title="Sign Out"><User size={20} /></div>
           <div className="search-bar">
             <Search size={16} />
             <input type="text" placeholder="Search for anything..." />
           </div>
         </div>
         <div className="header-right">
-          <div className="action-btn"><Bell size={20} /></div>
+          <div className="action-btn" onClick={() => window.location.href = '/admin'} title="Admin Portal"><Bell size={20} /></div>
           <div className="action-btn"><Menu size={20} /></div>
         </div>
       </header>
@@ -83,19 +85,19 @@ export default function Home() {
               </div>
               <span>Scan & Pay</span>
             </div>
-            <div className="pay-item">
+            <div className="pay-item" onClick={() => alert('Select a contact to pay')}>
               <div className="pay-icon-wrapper">
                 <Phone size={24} />
               </div>
               <span>To Mobile</span>
             </div>
-            <div className="pay-item">
+            <div className="pay-item" onClick={() => alert('Transfer between your accounts')}>
               <div className="pay-icon-wrapper">
                 <ArrowRightLeft size={24} />
               </div>
               <span>To Self</span>
             </div>
-            <div className="pay-item">
+            <div className="pay-item" onClick={() => alert('Enter bank details')}>
               <div className="pay-icon-wrapper">
                 <Send size={24} />
               </div>
@@ -129,7 +131,7 @@ export default function Home() {
               </div>
             </div>
             <div className="info-actions">
-              <button className="text-action">Check History <ChevronRight size={14} /></button>
+              <button className="text-action" onClick={() => window.location.href = '/history'}>Check History <ChevronRight size={14} /></button>
               <button className="add-money-btn">+ Add Money</button>
             </div>
           </GlassCard>
@@ -150,19 +152,19 @@ export default function Home() {
             <h3>Ticket Booking</h3>
           </div>
           <div className="booking-grid">
-            <div className="booking-item">
+            <div className="booking-item" onClick={() => alert('Booking bus tickets...')}>
               <div className="booking-icon b-bus">🚌</div>
               <span>Bus</span>
             </div>
-            <div className="booking-item">
+            <div className="booking-item" onClick={() => alert('Booking flights...')}>
               <div className="booking-icon b-flight">✈️</div>
               <span>Flight</span>
             </div>
-            <div className="booking-item">
+            <div className="booking-item" onClick={() => alert('Booking train tickets...')}>
               <div className="booking-icon b-train">🚄</div>
               <span>Train</span>
             </div>
-            <div className="booking-item">
+            <div className="booking-item" onClick={() => alert('Booking movie tickets...')}>
               <div className="booking-icon b-movie">🎬</div>
               <span>Movies</span>
             </div>
@@ -174,7 +176,10 @@ export default function Home() {
           <div className="section-header">
             <h3>Invest in Crypto</h3>
           </div>
-          <BitcoinWallet btcBalance={bitcoinAccount?.balance || 0.0045} />
+          <BitcoinWallet 
+            btcBalance={bitcoinAccount?.balance || 0} 
+            onTradeSuccess={loadData}
+          />
         </section>
 
         {/* Recent Transactions */}
@@ -200,13 +205,18 @@ export default function Home() {
                 </div>
               </div>
             ))}
+            {data.transactions?.length === 0 && (
+              <p style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                No recent transactions found.
+              </p>
+            )}
           </div>
         </section>
       </main>
 
       {/* Bottom Navigation */}
       <nav className="bottom-nav">
-        <div className="nav-item active">
+        <div className="nav-item active" onClick={() => window.location.href = '/'}>
           <HomeIcon size={24} />
           <span>Home</span>
         </div>
@@ -214,13 +224,13 @@ export default function Home() {
           <Scan size={24} />
           <span>Scan</span>
         </div>
-        <div className="nav-item">
+        <div className="nav-item" onClick={() => window.location.href = '/insights'}>
           <History size={24} />
-          <span>History</span>
+          <span>Insights</span>
         </div>
-        <div className="nav-item">
+        <div className="nav-item" onClick={() => window.location.href = '/admin'}>
           <WalletIcon size={24} />
-          <span>Wallet</span>
+          <span>Admin</span>
         </div>
       </nav>
 
