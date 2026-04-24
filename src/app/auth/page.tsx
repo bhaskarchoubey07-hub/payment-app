@@ -27,7 +27,7 @@ export default function AuthPage() {
         if (error) throw error;
         window.location.href = '/';
       } else {
-        const { error } = await supabase.auth.signUp({ 
+        const { data, error } = await supabase.auth.signUp({ 
           email, 
           password,
           options: {
@@ -35,7 +35,15 @@ export default function AuthPage() {
           }
         });
         if (error) throw error;
-        setMessage('Check your email to confirm your account!');
+        
+        if (data.session) {
+          setMessage('Account created! Redirecting to dashboard...');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1500);
+        } else {
+          setMessage('Account created successfully! You can now sign in.');
+        }
       }
     } catch (error: any) {
       setMessage(error.message);
