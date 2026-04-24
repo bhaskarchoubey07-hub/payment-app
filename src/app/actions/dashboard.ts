@@ -81,6 +81,50 @@ export async function getDashboardData() {
 }
 
 /**
+ * Adds money to the user's primary bank account
+ */
+export async function addMoney(amount: number) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Unauthorized');
+
+  await prisma.$transaction(async (tx) => {
+    const dbUser = await tx.user.findUnique({
+      where: { id: user.id },
+      include: { accounts: true }
+    });
+
+    if (!dbUser) throw new Error('User not found');
+    const primaryAccount = dbUser.accounts.find(a => a.type === 'BANK');
+
+    if (!primaryAccount) throw new Error('Primary bank account not found');
+
+    await tx.account.update({
+      where: { id: primaryAccount.id },
+      data: { balance: { increment: amount } }
+    });
+
+    await tx.transaction.create({
+      data: {
+        id: crypto.randomUUID(),
+        userId: user.id,
+        amount: amount,
+        currency: 'INR',
+        type: 'CREDIT',
+        method: 'UPI',
+        category: 'Salary',
+        merchantName: 'Wallet Top-up',
+        status: 'SUCCESS'
+      }
+    });
+  });
+
+  revalidatePath('/');
+  return { success: true };
+}
+
+/**
  * Signs the user out
  */
 export async function signOut() {
@@ -88,3 +132,5 @@ export async function signOut() {
   await supabase.auth.signOut();
   revalidatePath('/');
 }
+
+

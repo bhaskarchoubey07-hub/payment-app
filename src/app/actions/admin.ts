@@ -68,3 +68,40 @@ export async function updateLoanStatus(loanId: string, status: 'APPROVED' | 'REJ
   revalidatePath('/admin');
   return updatedLoan;
 }
+
+/**
+ * Fetches recent fraud alerts for the admin dashboard
+ */
+export async function getFraudAlerts() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Unauthorized');
+
+  return prisma.fraudLog.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 10
+  });
+}
+
+/**
+ * Fetches all registered users for admin management
+ */
+export async function getAllUsers() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Unauthorized');
+
+  return prisma.user.findMany({
+    include: {
+      accounts: true,
+      _count: {
+        select: { transactions: true }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+}
+
+

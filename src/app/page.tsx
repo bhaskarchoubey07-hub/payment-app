@@ -5,7 +5,7 @@ import Header from '@/components/ui/Header';
 import GlassCard from '@/components/ui/GlassCard';
 import ServiceGrid from '@/components/ui/ServiceGrid';
 import BitcoinWallet from '@/components/features/BitcoinWallet';
-import { getDashboardData, signOut } from '@/app/actions/dashboard';
+import { getDashboardData, signOut, addMoney } from '@/app/actions/dashboard';
 import { 
   Scan, 
   Send, 
@@ -29,6 +29,14 @@ import { motion } from 'framer-motion';
 export default function Home() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const handleAddMoney = async () => {
+    const amount = prompt('Enter amount to add:');
+    if (amount && !isNaN(parseFloat(amount))) {
+      await addMoney(parseFloat(amount));
+      await loadData();
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -132,7 +140,7 @@ export default function Home() {
             </div>
             <div className="info-actions">
               <button className="text-action" onClick={() => window.location.href = '/history'}>Check History <ChevronRight size={14} /></button>
-              <button className="add-money-btn">+ Add Money</button>
+              <button className="add-money-btn" onClick={handleAddMoney}>+ Add Money</button>
             </div>
           </GlassCard>
         </section>

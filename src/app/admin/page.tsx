@@ -16,22 +16,25 @@ import {
   Loader2
 } from 'lucide-react';
 import GlassCard from '@/components/ui/GlassCard';
-import { getAdminStats, getPendingLoans, updateLoanStatus } from '@/app/actions/admin';
+import { getAdminStats, getPendingLoans, updateLoanStatus, getFraudAlerts } from '@/app/actions/admin';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [loans, setLoans] = useState<any[]>([]);
+  const [fraudAlerts, setFraudAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
 
   const loadData = async () => {
     try {
-      const [statsData, loansData] = await Promise.all([
+      const [statsData, loansData, fraudData] = await Promise.all([
         getAdminStats(),
-        getPendingLoans()
+        getPendingLoans(),
+        getFraudAlerts()
       ]);
       setStats(statsData);
       setLoans(loansData);
+      setFraudAlerts(fraudData);
     } catch (error) {
       console.error('Admin Load Error:', error);
     } finally {
@@ -73,13 +76,13 @@ export default function AdminDashboard() {
         <nav className="admin-nav">
           <div className="nav-group">
             <p>Main</p>
-            <div className="nav-link active"><Activity size={18} /> Dashboard</div>
-            <div className="nav-link"><Users size={18} /> User Management</div>
+            <div className="nav-link active" onClick={() => window.location.href = '/admin'}><Activity size={18} /> Dashboard</div>
+            <div className="nav-link" onClick={() => window.location.href = '/admin/users'}><Users size={18} /> User Management</div>
             <div className="nav-link"><Briefcase size={18} /> Loan Assets</div>
           </div>
           <div className="nav-group">
             <p>Security</p>
-            <div className="nav-link"><AlertTriangle size={18} /> Fraud Alerts <span className="warning-count">3</span></div>
+            <div className="nav-link"><AlertTriangle size={18} /> Fraud Alerts <span className="warning-count">{fraudAlerts.length}</span></div>
           </div>
         </nav>
       </aside>
@@ -168,6 +171,44 @@ export default function AdminDashboard() {
                   <tr>
                     <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                       No pending loan applications found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </GlassCard>
+
+          <GlassCard className="table-card mt-8">
+            <div className="table-header">
+               <h3>Critical Fraud Alerts</h3>
+               <button className="text-btn">Clear All</button>
+            </div>
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Merchant</th>
+                  <th>Amount</th>
+                  <th>Risk Flag</th>
+                  <th>Time</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fraudAlerts.map((alert) => (
+                  <tr key={alert.id}>
+                    <td>{alert.merchantName}</td>
+                    <td>₹{alert.amount.toLocaleString()}</td>
+                    <td><span className="risk-badge high">{alert.riskFlag}</span></td>
+                    <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {new Date(alert.createdAt).toLocaleString()}
+                    </td>
+                    <td><button className="text-btn">Review</button></td>
+                  </tr>
+                ))}
+                {fraudAlerts.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                      System is secure. No fraud alerts detected.
                     </td>
                   </tr>
                 )}
@@ -357,6 +398,9 @@ export default function AdminDashboard() {
 
         .risk-badge.low { background: hsla(142, 70%, 45%, 0.15); color: var(--success); }
         .risk-badge.medium { background: hsla(38, 92%, 50%, 0.15); color: var(--warning); }
+        .risk-badge.high { background: hsla(0, 70%, 45%, 0.15); color: var(--error); }
+
+        .mt-8 { margin-top: 2rem; }
 
         .action-btns {
           display: flex;

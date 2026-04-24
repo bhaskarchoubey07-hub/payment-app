@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/ui/Header';
 import GlassCard from '@/components/ui/GlassCard';
 import { 
@@ -10,11 +10,35 @@ import {
   Target, 
   ArrowUpRight,
   Sparkles,
-  Zap
+  Zap,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getAetherInsights } from '@/app/actions/insights';
 
 export default function InsightsPage() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const insights = await getAetherInsights();
+      setData(insights);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex-center" style={{ height: '100vh', background: 'var(--bg-primary)' }}>
+        <Loader2 className="animate-spin" size={32} color="var(--primary)" />
+      </div>
+    );
+  }
+
+  if (!data) return <div className="flex-center" style={{ height: '100vh' }}>Failed to load insights.</div>;
+
   return (
     <div className="insights-wrapper">
       <Header />
@@ -32,11 +56,11 @@ export default function InsightsPage() {
               <Sparkles className="icon-gold" />
               <span>Aether Health Score</span>
             </div>
-            <h2 className="score-val--big">84<span>/100</span></h2>
+            <h2 className="score-val--big">{data.healthScore}<span>/100</span></h2>
             <div className="progress-bar-container">
-              <div className="progress-bar-fill" style={{ width: '84%' }}></div>
+              <div className="progress-bar-fill" style={{ width: `${data.healthScore}%` }}></div>
             </div>
-            <p className="score-desc">Your score improved by <b>4 points</b> this week due to increased crypto-yield harvesting.</p>
+            <p className="score-desc">{data.aiInsight}</p>
           </GlassCard>
         </section>
 
@@ -48,15 +72,15 @@ export default function InsightsPage() {
               <div className="split-list">
                  <div className="split-item">
                     <span>Essential</span>
-                    <span className="val">₹42,000</span>
+                    <span className="val">₹{data.spendingSplit.Essential.toLocaleString()}</span>
                  </div>
                  <div className="split-item">
                     <span>Lifestyle</span>
-                    <span className="val">₹18,500</span>
+                    <span className="val">₹{data.spendingSplit.Lifestyle.toLocaleString()}</span>
                  </div>
                  <div className="split-item highlighted">
                     <span>Investments</span>
-                    <span className="val">₹12,000</span>
+                    <span className="val">₹{data.spendingSplit.Investments.toLocaleString()}</span>
                  </div>
               </div>
            </GlassCard>
@@ -65,8 +89,11 @@ export default function InsightsPage() {
               <Target className="icon-primary" size={20} />
               <h4>Savings Goal</h4>
               <div className="goal-info">
-                 <p className="goal-name">New Tesla Build</p>
-                 <p className="goal-progress">₹1,45,000 / ₹45,00,000</p>
+                 <p className="goal-name">{data.goal.name}</p>
+                 <p className="goal-progress">₹{data.goal.current.toLocaleString()} / ₹{data.goal.target.toLocaleString()}</p>
+                 <div className="progress-mini">
+                    <div className="progress-mini-fill" style={{ width: `${Math.min(100, (data.goal.current / data.goal.target) * 100)}%` }}></div>
+                 </div>
               </div>
            </GlassCard>
         </section>
@@ -81,11 +108,11 @@ export default function InsightsPage() {
              <div className="p-row">
                 <div className="p-item">
                    <p className="p-label">Next Month Est.</p>
-                   <p className="p-val">₹2,45,000</p>
+                   <p className="p-val">₹{Math.round(data.prediction.nextMonth).toLocaleString()}</p>
                 </div>
                 <div className="p-icon"><ArrowUpRight className="icon-success" /></div>
              </div>
-             <p className="p-footer">Based on your current retention rate, you are on track to exceed your savings target by <b>12.5%</b>.</p>
+             <p className="p-footer">Based on your current retention rate, you are on track with a <b>{(data.prediction.confidence * 100).toFixed(0)}% confidence</b> interval.</p>
           </GlassCard>
         </section>
       </main>
@@ -207,6 +234,19 @@ export default function InsightsPage() {
 
         .icon-success { color: var(--success); }
         .icon-warning { color: var(--warning); }
+
+        .progress-mini {
+           height: 4px;
+           background: rgba(255,255,255,0.05);
+           border-radius: 2px;
+           margin-top: 8px;
+           overflow: hidden;
+        }
+
+        .progress-mini-fill {
+           height: 100%;
+           background: var(--primary);
+        }
 
         @media (max-width: 600px) {
            .insights-grid { grid-template-columns: 1fr; }

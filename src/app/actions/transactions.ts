@@ -64,6 +64,27 @@ export async function processPayment(formData: {
       }
     });
 
+    // 5. Fraud Detection Logic (Real Engine)
+    let riskFlag = null;
+    if (formData.amount > 100000) {
+      riskFlag = 'Unusually high amount';
+    } else if (formData.method === 'CRYPTO' && formData.amount > 50000) {
+      riskFlag = 'High-value crypto withdrawal';
+    }
+
+    if (riskFlag) {
+      await tx.fraudLog.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: user.id,
+          transactionId: transaction.id,
+          merchantName: transaction.merchantName,
+          amount: formData.amount,
+          riskFlag: riskFlag
+        }
+      });
+    }
+
     return transaction;
   });
 

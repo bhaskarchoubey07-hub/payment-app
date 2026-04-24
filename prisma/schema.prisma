@@ -79,6 +79,16 @@ model Insight {
   createdAt        DateTime        @default(now())
 }
 
+model FraudLog {
+  id               String        @id @default(uuid())
+  userId           String
+  transactionId    String?
+  merchantName     String?
+  amount           Float?
+  riskFlag         String        // Unusual Amount, High Frequency, etc.
+  createdAt        DateTime      @default(now())
+}
+
 enum KycStatus {
   PENDING
   VERIFIED
