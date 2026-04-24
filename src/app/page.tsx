@@ -3,29 +3,32 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/ui/Header';
 import GlassCard from '@/components/ui/GlassCard';
-import PremiumButton from '@/components/ui/PremiumButton';
+import ServiceGrid from '@/components/ui/ServiceGrid';
+import BitcoinWallet from '@/components/features/BitcoinWallet';
 import { getDashboardData, signOut } from '@/app/actions/dashboard';
-import { processPayment } from '@/app/actions/transactions';
 import { 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  Plus, 
-  Zap, 
-  TrendingUp, 
-  ShieldAlert,
+  Scan, 
+  Send, 
+  User, 
+  ArrowRightLeft, 
+  Home as HomeIcon, 
+  History, 
+  Wallet as WalletIcon,
+  Search,
+  Bell,
+  Menu,
   ChevronRight,
-  Wallet,
-  CreditCard,
-  Globe,
+  TrendingUp,
   Loader2,
-  LogOut
+  Phone,
+  ArrowUpRight,
+  ArrowDownLeft
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 export default function Home() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -40,258 +43,406 @@ export default function Home() {
     loadData();
   }, []);
 
-  const handleTestPayment = async () => {
-    setProcessing(true);
-    try {
-       await processPayment({
-         amount: 1200,
-         currency: 'INR',
-         merchantName: 'Aether Cloud Services',
-         method: 'UPI'
-       });
-       // Refresh data
-       const updated = await getDashboardData();
-       setData(updated);
-    } catch (e: any) {
-       alert(e.message);
-    } finally {
-       setProcessing(false);
-    }
-  };
-
   if (loading) {
     return (
-      <div className="flex-center" style={{ height: '100vh' }}>
-        <Loader2 className="animate-spin" size={32} />
+      <div className="flex-center" style={{ height: '100vh', background: 'var(--bg-primary)' }}>
+        <Loader2 className="animate-spin" size={32} color="var(--primary)" />
       </div>
     );
   }
 
-  const primaryAccount = data.accounts[0];
+  const primaryAccount = data.accounts.find((a: any) => a.type === 'BANK') || data.accounts[0];
+  const bitcoinAccount = data.accounts.find((a: any) => a.provider === 'Bitcoin');
   const balance = primaryAccount?.balance || 0;
 
   return (
-    <div className="home-wrapper">
-      <Header />
-      
-      <main className="container main-layout">
-        {/* Balance Card Section */}
-        <section className="hero-balance">
-          <GlassCard className="balance-card">
-            <div className="balance-info">
-              <div className="balance-head">
-                <p className="label">Total Balance</p>
-                <button onClick={signOut} className="signout-icon"><LogOut size={16} /></button>
+    <div className="app-shell">
+      {/* Search Header */}
+      <header className="page-header">
+        <div className="header-left">
+          <div className="profile-btn"><User size={20} /></div>
+          <div className="search-bar">
+            <Search size={16} />
+            <input type="text" placeholder="Search for anything..." />
+          </div>
+        </div>
+        <div className="header-right">
+          <div className="action-btn"><Bell size={20} /></div>
+          <div className="action-btn"><Menu size={20} /></div>
+        </div>
+      </header>
+
+      <main className="main-content container animate-fade-in">
+        
+        {/* Core Pay/Receive Section */}
+        <section className="pay-section">
+          <div className="pay-grid">
+            <div className="pay-item main" onClick={() => window.location.href = '/scan'}>
+              <div className="pay-icon-wrapper scan">
+                <Scan size={28} />
               </div>
-              <h2 className="amount">₹{balance.toLocaleString()}</h2>
+              <span>Scan & Pay</span>
+            </div>
+            <div className="pay-item">
+              <div className="pay-icon-wrapper">
+                <Phone size={24} />
+              </div>
+              <span>To Mobile</span>
+            </div>
+            <div className="pay-item">
+              <div className="pay-icon-wrapper">
+                <ArrowRightLeft size={24} />
+              </div>
+              <span>To Self</span>
+            </div>
+            <div className="pay-item">
+              <div className="pay-icon-wrapper">
+                <Send size={24} />
+              </div>
+              <span>To Bank</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Promo Banner */}
+        <section className="promo-section">
+          <div className="promo-card">
+            <div className="promo-text">
+              <h4>Get ₹50 Cashback</h4>
+              <p>On your 1st Petrol Payment of ₹500+</p>
+            </div>
+            <div className="promo-tag">LOCKED</div>
+          </div>
+        </section>
+
+        {/* Balance & Account Info */}
+        <section className="balance-info-section">
+          <GlassCard className="balance-summary-card">
+            <div className="info-top">
+              <div>
+                <p className="label">Wallet Balance</p>
+                <h2 className="balance-amount">₹{balance.toLocaleString()}</h2>
+              </div>
               <div className="growth-tag">
                 <TrendingUp size={14} />
-                <span>+2.4% this month</span>
+                <span>+2.4%</span>
               </div>
             </div>
-            
-            <div className="card-visual">
-              <div className="card-circle"></div>
-              <div className="card-circle small"></div>
+            <div className="info-actions">
+              <button className="text-action">Check History <ChevronRight size={14} /></button>
+              <button className="add-money-btn">+ Add Money</button>
             </div>
           </GlassCard>
         </section>
 
-        {/* Quick Actions Container */}
-        <section className="quick-actions">
-          <div className="actions-grid">
-            <div className="action-item" onClick={handleTestPayment}>
-              <div className="action-circle primary">
-                {processing ? <Loader2 className="animate-spin" /> : <ArrowUpRight />}
-              </div>
-              <span>{processing ? '...' : 'Send ₹1.2k'}</span>
+        {/* Service Grid - Recharges & Bills */}
+        <section className="services-section">
+          <div className="section-header">
+            <h3>Recharges & Bill Payments</h3>
+            <button className="view-link">View All</button>
+          </div>
+          <ServiceGrid />
+        </section>
+
+        {/* Ticket Booking */}
+        <section className="booking-section">
+          <div className="section-header">
+            <h3>Ticket Booking</h3>
+          </div>
+          <div className="booking-grid">
+            <div className="booking-item">
+              <div className="booking-icon b-bus">🚌</div>
+              <span>Bus</span>
             </div>
-            <div className="action-item">
-              <div className="action-circle secondary"><ArrowDownLeft /></div>
-              <span>Receive</span>
+            <div className="booking-item">
+              <div className="booking-icon b-flight">✈️</div>
+              <span>Flight</span>
             </div>
-            <div className="action-item">
-              <div className="action-circle accent"><Wallet /></div>
-              <span>Assets</span>
+            <div className="booking-item">
+              <div className="booking-icon b-train">🚄</div>
+              <span>Train</span>
             </div>
-            <div className="action-item">
-              <div className="action-circle muted"><Plus /></div>
-              <span>More</span>
+            <div className="booking-item">
+              <div className="booking-icon b-movie">🎬</div>
+              <span>Movies</span>
             </div>
           </div>
         </section>
 
-        {/* AI Financial Brain Aspect */}
-        <section className="ai-insights">
-          <GlassCard className="ai-insight-banner">
-            <div className="banner-icon">
-              <Zap className="zap-icon" />
-            </div>
-            <div className="banner-content">
-              <h3>Aether AI Insight</h3>
-              <p>You recently spent ₹1,200 on <b>Aether Cloud Services</b>. Your spending in 'Transport' is trending 5% lower than average.</p>
-            </div>
-            <button className="banner-action">
-              <ChevronRight />
-            </button>
-          </GlassCard>
+        {/* Bitcoin Wallet Integration */}
+        <section className="crypto-section">
+          <div className="section-header">
+            <h3>Invest in Crypto</h3>
+          </div>
+          <BitcoinWallet btcBalance={bitcoinAccount?.balance || 0.0045} />
         </section>
 
-        {/* Recent Transactions Section */}
+        {/* Recent Transactions */}
         <section className="recent-activity">
           <div className="section-header">
-            <h3>Recent Activity</h3>
-            <button className="view-all">View All</button>
+            <h3>Recent Transactions</h3>
+            <button className="view-link" onClick={() => window.location.href = '/transactions'}>All</button>
           </div>
-          
           <div className="tx-list">
             {(data.transactions || []).map((tx: any) => (
               <div key={tx.id} className="tx-row">
                 <div className="tx-left">
-                  <div className={`tx-icon ${tx.amount > 0 ? 'accent' : 'primary'}`}>
+                  <div className={`tx-icon ${tx.amount > 0 ? 'success' : 'out'}`}>
                     {tx.amount > 0 ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
                   </div>
                   <div className="tx-details">
                     <p className="tx-name">{tx.merchantName}</p>
-                    <p className="tx-category">{tx.category || tx.method}</p>
+                    <p className="tx-meta">{new Date(tx.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
-                <div className={`tx-right ${tx.amount > 0 ? 'positive' : 'negative'}`}>
-                  {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
+                <div className={`tx-right ${tx.amount > 0 ? 'positive' : ''}`}>
+                  {tx.amount > 0 ? '+' : ''}₹{Math.abs(tx.amount).toLocaleString()}
                 </div>
               </div>
             ))}
-            {data.transactions.length === 0 && (
-                <p className="empty-msg">No recent activity found.</p>
-            )}
           </div>
         </section>
       </main>
 
+      {/* Bottom Navigation */}
+      <nav className="bottom-nav">
+        <div className="nav-item active">
+          <HomeIcon size={24} />
+          <span>Home</span>
+        </div>
+        <div className="nav-item" onClick={() => window.location.href = '/scan'}>
+          <Scan size={24} />
+          <span>Scan</span>
+        </div>
+        <div className="nav-item">
+          <History size={24} />
+          <span>History</span>
+        </div>
+        <div className="nav-item">
+          <WalletIcon size={24} />
+          <span>Wallet</span>
+        </div>
+      </nav>
+
       <style jsx>{`
-        .home-wrapper {
-          padding-bottom: 2rem;
+        .app-shell {
+          min-height: 100vh;
+          background: #f8fbff; /* Very light blue background */
+          color: #222;
+          padding-bottom: 80px;
         }
 
-        .main-layout {
-          display: flex;
-          flex-direction: column;
-          gap: 2rem;
+        :global(.dark) .app-shell {
+          background: var(--bg-primary);
+          color: white;
         }
 
-        /* Balance Card Styles */
-        .balance-card {
-          position: relative;
-          overflow: hidden;
-          background: linear-gradient(135deg, var(--primary) 0%, var(--bg-secondary) 100%);
-          height: 180px;
+        .page-header {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          background: #00baf2;
+          padding: 1rem;
           display: flex;
-          flex-direction: column;
+          justify-content: space-between;
+          align-items: center;
+          color: white;
+          border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex: 1;
+        }
+
+        .profile-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.2);
+          display: flex;
+          align-items: center;
           justify-content: center;
         }
 
-        .balance-info .label {
-          font-size: 0.9rem;
-          opacity: 0.8;
-          margin-bottom: 0.5rem;
-        }
-
-        .balance-info .amount {
-          font-size: 2.25rem;
-          font-weight: 700;
-          margin-bottom: 0.75rem;
-        }
-
-        .growth-tag {
-          display: inline-flex;
+        .search-bar {
+          background: rgba(255,255,255,0.2);
+          border-radius: 20px;
+          padding: 6px 14px;
+          display: flex;
           align-items: center;
-          gap: 6px;
-          background: rgba(255, 255, 255, 0.1);
-          padding: 4px 10px;
-          border-radius: var(--radius-full);
-          font-size: 0.8rem;
-          font-weight: 500;
+          gap: 10px;
+          flex: 1;
+          max-width: 300px;
         }
 
-        .card-visual .card-circle {
-          position: absolute;
-          top: -20px;
-          right: -20px;
-          width: 140px;
-          height: 140px;
-          border-radius: 50%;
-          background: radial-gradient(circle, hsla(0, 0%, 100%, 0.15) 0%, transparent 70%);
+        .search-bar input {
+          background: transparent;
+          border: none;
+          color: white;
+          font-size: 0.85rem;
+          outline: none;
         }
 
-        .card-visual .card-circle.small {
-          width: 80px;
-          height: 80px;
-          top: 40px;
-          right: 20px;
+        .search-bar input::placeholder {
+          color: rgba(255,255,255,0.7);
         }
 
-        /* Quick Actions */
-        .actions-grid {
+        .header-right {
+          display: flex;
+          gap: 15px;
+        }
+
+        .main-content {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+          padding-top: 1.5rem;
+        }
+
+        /* Pay Section */
+        .pay-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 1rem;
+          background: white;
+          padding: 1.25rem;
+          border-radius: var(--radius-md);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
-        .action-item {
+        :global(.dark) .pay-grid {
+          background: var(--bg-secondary);
+        }
+
+        .pay-item {
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 8px;
         }
 
-        .action-circle {
+        .pay-icon-wrapper {
           width: 50px;
           height: 50px;
-          border-radius: 18px;
+          border-radius: 12px;
+          background: #f0f7ff;
+          color: #00baf2;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--bg-accent);
-          transition: var(--transition);
-          color: var(--text-primary);
         }
 
-        .action-circle.primary { background: var(--primary-glow); color: var(--primary); }
-        .action-circle.secondary { background: hsla(142, 70%, 45%, 0.15); color: var(--success); }
-        .action-circle.accent { background: var(--accent-glow); color: var(--accent); }
-
-        .action-item span {
-          font-size: 0.8rem;
-          font-weight: 500;
-          color: var(--text-secondary);
+        .pay-icon-wrapper.scan {
+          background: #00baf2;
+          color: white;
+          width: 60px;
+          height: 60px;
+          border-radius: 16px;
         }
 
-        /* AI Insight Banner */
-        .ai-insight-banner {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
+        .pay-item span {
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+
+        /* Promo Section */
+        .promo-card {
+          background: linear-gradient(90deg, #002e6e 0%, #00baf2 100%);
           padding: 1.25rem;
-          border: 1px solid var(--primary-glow);
+          border-radius: var(--radius-md);
+          color: white;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
         }
 
-        .zap-icon {
-          color: var(--warning);
-          filter: drop-shadow(0 0 5px var(--warning));
-        }
-
-        .banner-content h3 {
-          font-size: 0.95rem;
+        .promo-text h4 {
           margin-bottom: 4px;
         }
 
-        .banner-content p {
-          font-size: 0.85rem;
-          color: var(--text-secondary);
-          line-height: 1.4;
+        .promo-text p {
+          font-size: 0.8rem;
+          opacity: 0.8;
         }
 
-        /* Routing Hub */
+        .promo-tag {
+          font-size: 0.7rem;
+          font-weight: 700;
+          background: rgba(255,255,255,0.2);
+          padding: 4px 8px;
+          border-radius: 4px;
+        }
+
+        /* Balance Info */
+        .balance-summary-card {
+          padding: 1.25rem;
+          background: white;
+          border: 1px solid #e1e8f5;
+        }
+
+        :global(.dark) .balance-summary-card {
+          background: var(--bg-secondary);
+          border: 1px solid var(--glass-border);
+        }
+
+        .info-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 2rem;
+        }
+
+        .label {
+          font-size: 0.85rem;
+          color: #666;
+          margin-bottom: 4px;
+        }
+
+        .balance-amount {
+          font-size: 2rem;
+          font-weight: 700;
+        }
+
+        .growth-tag {
+          padding: 4px 8px;
+          border-radius: 8px;
+          background: #e6f7ef;
+          color: #00aa00;
+          font-size: 0.75rem;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-weight: 600;
+        }
+
+        .info-actions {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .text-action {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #00baf2;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .add-money-btn {
+          background: #00baf2;
+          color: white;
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 0.85rem;
+          font-weight: 600;
+        }
+
+        /* Services section */
         .section-header {
           display: flex;
           justify-content: space-between;
@@ -299,70 +450,86 @@ export default function Home() {
           margin-bottom: 1rem;
         }
 
-        .badge-live {
-          font-size: 0.7rem;
-          background: var(--error);
-          padding: 2px 8px;
-          border-radius: var(--radius-full);
-          text-transform: uppercase;
+        .section-header h3 {
+          font-size: 1.1rem;
           font-weight: 700;
-          letter-spacing: 0.5px;
         }
 
-        .routing-options {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .route-card {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1rem;
-          background: var(--bg-secondary);
-          border: 1px solid var(--glass-border);
+        /* Booking Section */
+        .booking-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1rem;
+          background: white;
+          padding: 1.25rem;
           border-radius: var(--radius-md);
         }
 
-        .route-card.active {
-          border-color: var(--primary);
+        :global(.dark) .booking-grid {
+          background: var(--bg-secondary);
         }
 
-        .route-name {
-          font-size: 0.95rem;
-          font-weight: 600;
-          margin-bottom: 2px;
+        .booking-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
         }
 
-        .route-meta {
+        .booking-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.5rem;
+          background: #f8fbff;
+        }
+
+        :global(.dark) .booking-icon {
+          background: rgba(255,255,255,0.05);
+        }
+
+        .booking-item span {
           font-size: 0.75rem;
-          color: var(--text-muted);
+          font-weight: 600;
         }
 
-        .route-reward {
-          background: var(--glass-border);
-          padding: 4px 10px;
-          border-radius: var(--radius-full);
-          font-size: 0.8rem;
-          font-weight: 700;
-          color: var(--accent);
+        .view-link {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #00baf2;
         }
 
-        /* Transaction List */
+        /* Transactions */
         .tx-list {
           display: flex;
           flex-direction: column;
           gap: 1rem;
+          background: white;
+          padding: 1.25rem;
+          border-radius: var(--radius-md);
+        }
+
+        :global(.dark) .tx-list {
+          background: var(--bg-secondary);
         }
 
         .tx-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding-bottom: 1rem;
+          padding-bottom: 12px;
+          border-bottom: 1px solid #f0f0f0;
+        }
+
+        :global(.dark) .tx-row {
           border-bottom: 1px solid var(--glass-border);
         }
+
+        .tx-row:last-child { border-bottom: none; }
 
         .tx-left {
           display: flex;
@@ -373,37 +540,69 @@ export default function Home() {
         .tx-icon {
           width: 40px;
           height: 40px;
-          border-radius: 12px;
+          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
+          background: #f0f7ff;
+          color: #00baf2;
         }
 
-        .tx-icon.dark { background: #1a1a1a; }
-        .tx-icon.primary { background: var(--primary-glow); color: var(--primary); }
-        .tx-icon.accent { background: var(--accent-glow); color: var(--accent); }
+        .tx-icon.success { background: #e6f7ef; color: #00aa00; }
+        .tx-icon.out { background: #fff1f1; color: #ff5555; }
 
         .tx-name {
           font-size: 0.95rem;
           font-weight: 600;
         }
 
-        .tx-category {
+        .tx-meta {
           font-size: 0.75rem;
-          color: var(--text-muted);
+          color: #888;
         }
 
         .tx-right {
           font-size: 1rem;
-          font-weight: 600;
+          font-weight: 700;
         }
 
-        .tx-right.positive { color: var(--success); }
-        .tx-right.negative { color: var(--text-primary); }
+        .tx-right.positive { color: #00aa00; }
 
-        .view-all {
-          font-size: 0.85rem;
-          color: var(--primary);
+        /* Bottom Nav */
+        .bottom-nav {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 70px;
+          background: white;
+          border-top: 1px solid #eee;
+          display: flex;
+          justify-content: space-around;
+          align-items: center;
+          padding: 0 10px;
+          z-index: 1000;
+        }
+
+        :global(.dark) .bottom-nav {
+          background: var(--bg-secondary);
+          border-top: 1px solid var(--glass-border);
+        }
+
+        .nav-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          color: #888;
+        }
+
+        .nav-item.active {
+          color: #00baf2;
+        }
+
+        .nav-item span {
+          font-size: 0.7rem;
           font-weight: 600;
         }
       `}</style>

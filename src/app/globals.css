@@ -10,11 +10,12 @@
   --text-secondary: hsl(240, 5%, 65%);
   --text-muted: hsl(240, 5%, 45%);
   
-  --primary: hsl(250, 100%, 65%);
-  --primary-glow: hsla(250, 100%, 65%, 0.3);
+  --primary: #00baf2; /* Paytm Blue */
+  --primary-dark: #002e6e; /* Paytm Dark Blue */
+  --primary-glow: rgba(0, 186, 242, 0.3);
   
-  --accent: hsl(180, 100%, 50%);
-  --accent-glow: hsla(180, 100%, 50%, 0.3);
+  --accent: #002e6e; /* Using dark blue as accent */
+  --accent-glow: rgba(0, 46, 110, 0.3);
   
   --success: hsl(142, 70%, 45%);
   --warning: hsl(38, 92%, 50%);

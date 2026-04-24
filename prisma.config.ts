@@ -11,4 +11,8 @@ export default defineConfig({
   datasource: {
     url: process.env["DATABASE_URL"],
   },
+  client: {
+    output: "node_modules/@prisma/client",
+    engineType: "library"
+  }
 });
